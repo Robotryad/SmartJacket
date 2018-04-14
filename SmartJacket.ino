@@ -1,3 +1,4 @@
+// подключение библиотек
 #include <TinyGPS.h>
 #include <DallasTemperature.h>
 #include <OneWire.h>
@@ -9,22 +10,22 @@
 #define RST 3
 
 //TEMP
-#define tempBodyPin 4
-#define tempOutPin 5
-#define powerTempBodyPin 6
-#define powerTempOutPin 7
-#define powerEPHeatPin 12
-#define powerEPCoolPin 13
+#define tempBodyPin 4 // Пин подключения датчика температуры тела
+#define tempOutPin 5 // Пин подключения датчика наружной температуры
+#define powerTempBodyPin 6 // Пин управления питанием датчика температуры тела
+#define powerTempOutPin 7 // Пин управления питанием датчика наружной температуры
+#define powerEPHeatPin 12 // Пин подключения элемента-пельтье (для подогрева)
+#define powerEPCoolPin 13 // Пин подключения элемента-пельтье (для охлождения)
 
 
 // Константы критических температур
-#define TEMPBODYHIGHCRITIC 38
-#define TEMPBODYLOWCRITIC 34
-#define TEMPOUTHIGHCRITIC 40
-#define TEMPOUTLOWCRITIC -20
+#define TEMPBODYHIGHCRITIC 38 //критически-высокая температура тела
+#define TEMPBODYLOWCRITIC 34 //критически-низкая температура тела
+#define TEMPOUTHIGHCRITIC 40 //критически-высокая наружня температура
+#define TEMPOUTLOWCRITIC -20 //критически-низкая наружня температура
 
 // Инициализируем GPS
-SoftwareSerial gpsSerial(10, 11);
+SoftwareSerial gpsSerial(10, 11); // 10,11 пины для подключения gps модуля (10-RX; 11-TX)
 TinyGPS gps;
 
 // Инициализируем GSM
