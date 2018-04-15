@@ -81,7 +81,6 @@ void setup() {
   pinMode (tempBodyPin, INPUT);//измерение температуры тела - в сирийный порт
   pinMode (tempOutPin, INPUT);//измерение температуры воздуха - в сирийный порт
   pinMode (powerTempBodyPin, OUTPUT);//вывод температуры тела (элемент-пельтье)
-  pinMode (powerTempOutPin, OUTPUT);//вывод температуры воздуха () 
 }
 
 void loop() {
@@ -96,37 +95,14 @@ void loop() {
   tempOutHighCritic = false;   //Критически высокая температура на улице
   tempOutLowCritic = false;   //Критически низкая температура на улице
 
-  if (tempBody > tempOut) {
-    //Если температура тела больше температуры воздуха - устанавливаем tempLow в true
-    tempLow = true;
-  }
-  if (tempBody < tempOut) {
-        //Если температура тела больше температуры воздуха - устанавливаем tempHigh в true
-    tempHigh = true;
-  }
-  if (tempBody > TEMPBODYHIGHCRITIC) {
-    tempBodyHighCritic = true;                 // если температура тела больше чем критическая (высокая) температура тела, то tempBodyHighCritic в true
-  }
-  if (tempBody < TEMPBODYLOWCRITIC) {
-    tempBodyLowCritic = true;                 // если температура тела ниже чем критическая (низкая) температура тела, то tempBodyLowCritic в true
-  }
-  if (tempOut > TEMPOUTHIGHCRITIC) {
-    tempOutHighCritic = true;                 // если наружная температура больше чем критическая (высокая) температура наружности, то tempOutHighCritic в true  
-  }
-  if (tempOut < TEMPOUTLOWCRITIC) {
-    tempOutLowCritic = true;                  // если наружная температура ниже чем критическая (низкая) температура наружности, то tempOutLowCritic в true
-  }
-  
   if (tempLow) {
     digitalWrite(powerEPCoolPin, HIGH);
     digitalWrite(powerEPHeatPin, LOW);
   } // включение элемент-пельтье на охлаждение
-    if (tempHigh) {
     digitalWrite(powerEPCoolPin, LOW);
     digitalWrite(powerEPHeatPin, HIGH);
   } // включение элемент-пельтье на подогрев
   if (tempHigh && tempOutLowCritic) {
-      digitalWrite(powerEPCoolPin, LOW);
     digitalWrite(powerEPHeatPin, HIGH);
     SMS("Температура наружности критическая!");
   }
@@ -138,14 +114,10 @@ void loop() {
   }
   if (tempHigh && tempBodyLowCritic) {
     SMS("Температура тела критическая! Переохлаждение!");
-  digitalWrite(powerEPHeatPin,HIGH);
-  digitalWrite(powerEPCoolPin,LOW);
     //Отправка тревожного сигнала и включение Элементов-Пельтье на подогрев
   }
   if (tempLow && tempBodyHighCritic) {
     SMS("Температура тела критическая! !Перегрев");
-  digitalWrite(powerEPCoolPin,HIGH);
-  digitalWrite(powerEPHeatPin,LOW);
     //Отправка тревожного сигнала и включение Элементов-Пельтье на охлаждение
   }
 }
