@@ -1,4 +1,3 @@
-
 /*
    SmartJacket (Умная одежда)
    Проект умной одежды
@@ -31,15 +30,14 @@
 */
 
 // подключение библиотек
-
 #include <TinyGPS.h>
 #include <DallasTemperature.h>
 #include <OneWire.h>
 #include <SoftwareSerial.h>
 #include <iarduino_RTC.h>
 
-// TIME
-iarduino_RTC time(RTC_DS3231);
+//TIME
+iarduino_RTC timer(RTC_DS3231);
 
 // GPS
 #define OK 1
@@ -85,8 +83,8 @@ void setup() {
   gpsSerial.begin(9600); // скорость обмена с GPS-приемником
   SIM800.begin(9600);//скорость обмена с GPS-приемником
   Serial.begin(9600);//скорость обмена серийным портом
-  time.begin(RTC_DS3231);
-  time.settime(0, 50, 17, 14, 04, 18, 6); // 0  сек, 51 мин, 21 час, 27, октября, 2015 года, вторник
+  timer.begin();
+  timer.settime(0, 50, 17, 14, 04, 18, 6); // 0  сек, 51 мин, 21 час, 27, октября, 2015 года, вторник
   pinMode (tempBodyPin, INPUT);//измерение температуры тела - в сирийный порт
   pinMode (tempOutPin, INPUT);//измерение температуры воздуха - в сирийный порт
   pinMode (powerTempBodyPin, OUTPUT);//вывод температуры тела (элемент-пельтье)
@@ -157,13 +155,11 @@ void loop() {
     digitalWrite(powerEPHeatPin, LOW);
     //Отправка тревожного сигнала и включение Элементов-Пельтье на охлаждение
   }
-}
-
-
-//Время
-if (millis() % 1000 == 0) { // если прошла 1 секунда
-  Serial.println(time.gettime("d-m-Y, H:i:s, D")); // выводим время
+  //Время
+if ((millis() % 1000) == 0) { // если прошла 1 секунда
+  Serial.println(timer.gettime("d-m-Y, H:i:s, D")); // выводим время
   delay(1); // приостанавливаем на 1 мс, чтоб не выводить время несколько раз за 1мс
+  }
 }
 
 
