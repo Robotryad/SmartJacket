@@ -35,3 +35,5 @@ bool tempOutHighCritic, tempOutLowCritic
 Переменные для GPS
 bool newdata = false
 
+http://robotclass.ru/tutorials/arduino-accelerometer-mpu6050/ //аксилерометр
+
