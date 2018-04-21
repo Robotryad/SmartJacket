@@ -1,39 +1,45 @@
 /*
- * SmartJacket (Умная одежда)
- * Проект умной одежды
- * 
- * Версия: 0.1 (апрель 2018)
- * 
- * (c) Суслова Яна,Воробьёв Артём,Старинин Андрей, 2018 (Robotryad)
- * 
- MIT License
+   SmartJacket (Умная одежда)
+   Проект умной одежды
 
-Copyright (c) 2018 Robotryad (Суслова Яна,Воробьёв Артём,Старинин Андрей, 2018)
+   Версия: 0.1 (апрель 2018)
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+   (c) Суслова Яна,Воробьёв Артём,Старинин Андрей, 2018 (Robotryad)
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+  MIT License
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
- */
+  Copyright (c) 2018 Robotryad (Суслова Яна,Воробьёв Артём,Старинин Андрей, 2018)
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+*/
 
 // подключение библиотек
+#include <I2Cdev.h>
+#include <MPU6050.h>
 #include <TinyGPS.h>
 #include <DallasTemperature.h>
 #include <OneWire.h>
 #include <SoftwareSerial.h>
+#include <iarduino_RTC.h>
+
+//TIME
+iarduino_RTC timer(RTC_DS3231);
 
 // GPS
 #define OK 1
@@ -48,6 +54,12 @@ SOFTWARE.
 #define powerEPHeatPin 12 // Пин подключения элемента-пельтье (для подогрева)
 #define powerEPCoolPin 13 // Пин подключения элемента-пельтье (для охлождения)
 
+//ACCEL
+#define T_OUT 20 //интервал времени получения данных с аксилерометра
+#define TO_DEG 57.29577951308232087679815481410517033f
+
+MPU6050 accel;
+unsigned long int t_next;
 
 // Константы критических температур
 #define TEMPBODYHIGHCRITIC 38 //критически-высокая температура тела
@@ -74,19 +86,36 @@ unsigned long start;
 long lat, lon;
 unsigned long time, date;
 
+//переменные для аксилерометра
+float angle_ax;
+long int t_next;
+
+float clamp(float v, float minv, float maxv) {
+  if ( v > maxv )
+    return maxv;
+  else if ( v < minv )
+    return minv;
+  return v;
+}
+
 void setup() {
+  delay(300);
   gpsSerial.begin(9600); // скорость обмена с GPS-приемником
   SIM800.begin(9600);//скорость обмена с GPS-приемником
   Serial.begin(9600);//скорость обмена серийным портом
+  timer.begin();
+  accel.initialize();
+  Serial.println(accel.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
+  timer.settime(0, 50, 17, 14, 04, 18, 6); // 0  сек, 51 мин, 21 час, 27, октября, 2015 года, вторник
   pinMode (tempBodyPin, INPUT);//измерение температуры тела - в сирийный порт
   pinMode (tempOutPin, INPUT);//измерение температуры воздуха - в сирийный порт
   pinMode (powerTempBodyPin, OUTPUT);//вывод температуры тела (элемент-пельтье)
-  pinMode (powerTempOutPin, OUTPUT);//вывод температуры воздуха () 
+  pinMode (powerTempOutPin, OUTPUT);//вывод температуры воздуха ()
+
 }
 
 void loop() {
   GPS(); //Получение координат
-
   tempBody = TempBody(); //Считывание температуры тела
   tempOut = TempOut();//Считывание температуры воздуха
   tempLow = false;   //Охлаждение
@@ -101,7 +130,7 @@ void loop() {
     tempLow = true;
   }
   if (tempBody < tempOut) {
-        //Если температура тела больше температуры воздуха - устанавливаем tempHigh в true
+    //Если температура тела больше температуры воздуха - устанавливаем tempHigh в true
     tempHigh = true;
   }
   if (tempBody > TEMPBODYHIGHCRITIC) {
@@ -111,22 +140,22 @@ void loop() {
     tempBodyLowCritic = true;                 // если температура тела ниже чем критическая (низкая) температура тела, то tempBodyLowCritic в true
   }
   if (tempOut > TEMPOUTHIGHCRITIC) {
-    tempOutHighCritic = true;                 // если наружная температура больше чем критическая (высокая) температура наружности, то tempOutHighCritic в true  
+    tempOutHighCritic = true;                 // если наружная температура больше чем критическая (высокая) температура наружности, то tempOutHighCritic в true
   }
   if (tempOut < TEMPOUTLOWCRITIC) {
     tempOutLowCritic = true;                  // если наружная температура ниже чем критическая (низкая) температура наружности, то tempOutLowCritic в true
   }
-  
+
   if (tempLow) {
     digitalWrite(powerEPCoolPin, HIGH);
     digitalWrite(powerEPHeatPin, LOW);
   } // включение элемент-пельтье на охлаждение
-    if (tempHigh) {
+  if (tempHigh) {
     digitalWrite(powerEPCoolPin, LOW);
     digitalWrite(powerEPHeatPin, HIGH);
   } // включение элемент-пельтье на подогрев
   if (tempHigh && tempOutLowCritic) {
-      digitalWrite(powerEPCoolPin, LOW);
+    digitalWrite(powerEPCoolPin, LOW);
     digitalWrite(powerEPHeatPin, HIGH);
     SMS("Температура наружности критическая!");
   }
@@ -138,15 +167,51 @@ void loop() {
   }
   if (tempHigh && tempBodyLowCritic) {
     SMS("Температура тела критическая! Переохлаждение!");
-  digitalWrite(powerEPHeatPin,HIGH);
-  digitalWrite(powerEPCoolPin,LOW);
+    digitalWrite(powerEPHeatPin, HIGH);
+    digitalWrite(powerEPCoolPin, LOW);
     //Отправка тревожного сигнала и включение Элементов-Пельтье на подогрев
   }
   if (tempLow && tempBodyHighCritic) {
     SMS("Температура тела критическая! !Перегрев");
-  digitalWrite(powerEPCoolPin,HIGH);
-  digitalWrite(powerEPHeatPin,LOW);
+    digitalWrite(powerEPCoolPin, HIGH);
+    digitalWrite(powerEPHeatPin, LOW);
     //Отправка тревожного сигнала и включение Элементов-Пельтье на охлаждение
+
+
+  }
+}
+//Время
+int timer() {
+  if ((millis() % 1000) == 0) { // если прошла 1 секунда
+    Serial.println(timer.gettime("d-m-Y, H:i:s, D")); // выводим время
+    delay(1); // приостанавливаем на 1 мс, чтоб не выводить время несколько раз за 1мс
+  }
+}
+
+//акселерометр
+int acsel() {
+  long int t = millis();
+  if ( t_next < t ) {
+    int16_t ax_raw, ay_raw, az_raw, gx_raw, gy_raw, gz_raw;
+    float ay, gx
+
+    t_next = t + T_OUT;
+    accel.getMotion6(&ax_raw, &ay_raw, &az_raw, &gx_raw, &gy_raw, &gz_raw);
+
+    // сырые данные акселерометра нужно преобразовать в единицы гравитации
+    // при базовых настройках 1G = 4096
+    ay = ay_raw / 4096.0;
+    // на случай, если на акселерометр действуют посторонние силы, которые могут
+    // увеличить ускорение датчика свыше 1G, установим границы от -1G до +1G
+    ay = clamp(ay, -1.0, 1.0);
+
+    // функция acos возвращает угол в радианах, так что преобразуем
+    // его в градусы при помощи коэффициента TO_DEG
+    if ( ay >= 0) {
+      angle_ax = 90 - TO_DEG * acos(ay);
+    } else {
+      angle_ax = TO_DEG * acos(-ay) - 90;
+    }
   }
 }
 
@@ -245,4 +310,6 @@ void PrintSerial() {
   Serial.println(tempOutHighCritic);
   Serial.print("tempOutLowCritic");
   Serial.println(tempOutLowCritic);
+  Serial.print("accelerometr");
+  Serial.println(angle_ax); // вывод в порт угла поворота вокруг оси X
 }
