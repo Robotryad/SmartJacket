@@ -211,6 +211,7 @@ int acsel() {
       angle_ax = 90 - TO_DEG * acos(ay);
     } else {
       angle_ax = TO_DEG * acos(-ay) - 90;
+      return acsel;
     }
   }
 }
