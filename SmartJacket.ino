@@ -180,17 +180,10 @@ void loop() {
 
   }
 }
-//Время
-int timer() {
-  if ((millis() % 1000) == 0) { // если прошла 1 секунда
-    Serial.println(timer.gettime("d-m-Y, H:i:s, D")); // выводим время
-    delay(1); // приостанавливаем на 1 мс, чтоб не выводить время несколько раз за 1мс
-  }
-}
 
 //акселерометр
-int acsel() {
-  long int t = millis();
+void acsel() {
+long int t = millis();
   if ( t_next < t ) {
     int16_t ax_raw, ay_raw, az_raw, gx_raw, gy_raw, gz_raw;
     float ay, gx
@@ -211,7 +204,6 @@ int acsel() {
       angle_ax = 90 - TO_DEG * acos(ay);
     } else {
       angle_ax = TO_DEG * acos(-ay) - 90;
-      return acsel;
     }
   }
 }
