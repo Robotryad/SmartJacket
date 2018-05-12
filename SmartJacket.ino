@@ -157,7 +157,7 @@ void loop() {
   }
   //Время
 if ((millis() % 1000) == 0) { // если прошла 1 секунда
-  Serial.println(timer.gettime("d-m-Y, H:i:s, D")); // выводим время
+   Serial.println (timer.gettime("H:i:s")); // выводим время
   delay(1); // приостанавливаем на 1 мс, чтоб не выводить время несколько раз за 1мс
   }
 }
