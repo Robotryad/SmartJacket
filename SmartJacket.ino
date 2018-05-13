@@ -193,13 +193,14 @@ int TempOut() {
 }
 
 //акселерометр
-void acsel() {
-long int t = millis();
+void accel() {
+   long int t_next;
+   long int t = millis();
   if ( t_next < t ) {
     int16_t ax_raw, ay_raw, az_raw, gx_raw, gy_raw, gz_raw;
-    float ay, gx
-
-    t_next = t + T_OUT;
+    float ay, gx;
+      long int T_OUT;
+   t_next = t + T_OUT;
     accel.getMotion6(&ax_raw, &ay_raw, &az_raw, &gx_raw, &gy_raw, &gz_raw);
 
     // сырые данные акселерометра нужно преобразовать в единицы гравитации
