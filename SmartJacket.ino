@@ -36,8 +36,6 @@
 #include <SoftwareSerial.h>
 #include <iarduino_RTC.h>
 
-//TIME
-iarduino_RTC timer(RTC_DS3231);
 
 // GPS
 #define OK 1
@@ -83,8 +81,6 @@ void setup() {
   gpsSerial.begin(9600); // скорость обмена с GPS-приемником
   SIM800.begin(9600);//скорость обмена с GPS-приемником
   Serial.begin(9600);//скорость обмена серийным портом
-  timer.begin();
-  timer.settime(0, 50, 17, 14, 04, 18, 6); // 0  сек, 51 мин, 21 час, 27, октября, 2015 года, вторник
   pinMode (tempBodyPin, INPUT);//измерение температуры тела - в сирийный порт
   pinMode (tempOutPin, INPUT);//измерение температуры воздуха - в сирийный порт
   pinMode (powerTempBodyPin, OUTPUT);//вывод температуры тела (элемент-пельтье)
@@ -93,7 +89,6 @@ void setup() {
 
 void loop() {
   GPS(); //Получение координат
-
   tempBody = TempBody(); //Считывание температуры тела
   tempOut = TempOut();//Считывание температуры воздуха
   tempLow = false;   //Охлаждение
@@ -155,13 +150,6 @@ void loop() {
     digitalWrite(powerEPHeatPin, LOW);
     //Отправка тревожного сигнала и включение Элементов-Пельтье на охлаждение
   }
-  //Время
-if ((millis() % 1000) == 0) { // если прошла 1 секунда
-   Serial.println (timer.gettime("H:i:s")); // выводим время
-  delay(1); // приостанавливаем на 1 мс, чтоб не выводить время несколько раз за 1мс
-  }
-}
-
 
 // Температура тела
 int TempBody() {

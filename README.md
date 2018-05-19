@@ -4,7 +4,6 @@
 ## Аппаратная часть
 + Arduino LillyPad
 + DS18B20 (2 шт.)
-+ DHT3231
 + GPS
 + GSM Sim800l
 + аксилерометр
@@ -15,8 +14,6 @@
 + DallasTemperature - датчик температуры DS18B20
 + OneWire - 1-Wire 
 + SoftwareSerial - вывод на сирийный порт, создание нескольких программных портов
-+ Encoder = время DHT3231
-+ RTC = время DHT3231
 
 ## Функции
 + TempBody() - Температура тела
