@@ -1,39 +1,40 @@
 /*
- * SmartJacket (Умная одежда)
- * Проект умной одежды
- * 
- * Версия: 0.1 (апрель 2018)
- * 
- * (c) Суслова Яна,Воробьёв Артём,Старинин Андрей, 2018 (Robotryad)
- * 
- MIT License
+   SmartJacket (Умная одежда)
+   Проект умной одежды
 
-Copyright (c) 2018 Robotryad (Суслова Яна,Воробьёв Артём,Старинин Андрей, 2018)
+   Версия: 0.1 (апрель 2018)
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+   (c) Суслова Яна,Воробьёв Артём,Старинин Андрей, 2018 (Robotryad)
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+  MIT License
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
- */
+  Copyright (c) 2018 Robotryad (Суслова Яна,Воробьёв Артём,Старинин Андрей, 2018)
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+*/
 
 // подключение библиотек
 #include <TinyGPS.h>
 #include <DallasTemperature.h>
 #include <OneWire.h>
 #include <SoftwareSerial.h>
+#include <SD.h>
 
 // GPS
 #define OK 1
@@ -55,6 +56,11 @@ SOFTWARE.
 #define TEMPOUTHIGHCRITIC 40 //критически-высокая наружня температура
 #define TEMPOUTLOWCRITIC -20 //критически-низкая наружня температура
 
+//функция прерывания
+#define WB 2 //предупреждение об опасности
+volatile int state = LOW;
+
+
 // Инициализируем GPS
 SoftwareSerial gpsSerial(10, 11); // 10,11 пины для подключения gps модуля (10-RX; 11-TX)
 TinyGPS gps;
@@ -75,13 +81,16 @@ long lat, lon;
 unsigned long time, date;
 
 void setup() {
+  SD.begin(5);
   gpsSerial.begin(9600); // скорость обмена с GPS-приемником
   SIM800.begin(9600);//скорость обмена с GPS-приемником
   Serial.begin(9600);//скорость обмена серийным портом
   pinMode (tempBodyPin, INPUT);//измерение температуры тела - в сирийный порт
   pinMode (tempOutPin, INPUT);//измерение температуры воздуха - в сирийный порт
   pinMode (powerTempBodyPin, OUTPUT);//вывод температуры тела (элемент-пельтье)
-  pinMode (powerTempOutPin, OUTPUT);//вывод температуры воздуха () 
+  pinMode (powerTempOutPin, OUTPUT);//вывод температуры воздуха ()
+  pinMode (WB, OUTPUT);  //
+  attachInterrupt(0, blink, CHANGE)
 }
 
 void loop() {
@@ -96,56 +105,44 @@ void loop() {
   tempOutHighCritic = false;   //Критически высокая температура на улице
   tempOutLowCritic = false;   //Критически низкая температура на улице
 
-  if (tempBody > tempOut) {
-    //Если температура тела больше температуры воздуха - устанавливаем tempLow в true
-    tempLow = true;
-  }
-  if (tempBody < tempOut) {
-        //Если температура тела больше температуры воздуха - устанавливаем tempHigh в true
-    tempHigh = true;
-  }
-  if (tempBody > TEMPBODYHIGHCRITIC) {
-    tempBodyHighCritic = true;                 // если температура тела больше чем критическая (высокая) температура тела, то tempBodyHighCritic в true
-  }
-  if (tempBody < TEMPBODYLOWCRITIC) {
-    tempBodyLowCritic = true;                 // если температура тела ниже чем критическая (низкая) температура тела, то tempBodyLowCritic в true
-  }
-  if (tempOut > TEMPOUTHIGHCRITIC) {
-    tempOutHighCritic = true;                 // если наружная температура больше чем критическая (высокая) температура наружности, то tempOutHighCritic в true  
-  }
-  if (tempOut < TEMPOUTLOWCRITIC) {
-    tempOutLowCritic = true;                  // если наружная температура ниже чем критическая (низкая) температура наружности, то tempOutLowCritic в true
-  }
+  Temp();
+  FileSd();
   
   if (tempLow) {
     digitalWrite(powerEPCoolPin, HIGH);
+    delay (5000);
     digitalWrite(powerEPHeatPin, LOW);
   } // включение элемент-пельтье на охлаждение
-    if (tempHigh) {
+  if (tempHigh) {
     digitalWrite(powerEPCoolPin, LOW);
+    delay (5000);
     digitalWrite(powerEPHeatPin, HIGH);
   } // включение элемент-пельтье на подогрев
   if (tempHigh && tempOutLowCritic) {
-      digitalWrite(powerEPCoolPin, LOW);
+    digitalWrite(powerEPCoolPin, LOW);
+    delay (5000);
     digitalWrite(powerEPHeatPin, HIGH);
     SMS("Температура наружности критическая!");
   }
   if (tempLow && tempOutHighCritic) {
     digitalWrite(powerEPCoolPin, HIGH);
+    delay (5000);
     digitalWrite(powerEPHeatPin, LOW);
     SMS("Температура наружности критическая!");
     //отправляем тревожный сигнал
   }
   if (tempHigh && tempBodyLowCritic) {
     SMS("Температура тела критическая! Переохлаждение!");
-  digitalWrite(powerEPHeatPin,HIGH);
-  digitalWrite(powerEPCoolPin,LOW);
+    digitalWrite(powerEPHeatPin, HIGH);
+    delay (5000);
+    digitalWrite(powerEPCoolPin, LOW);
     //Отправка тревожного сигнала и включение Элементов-Пельтье на подогрев
   }
   if (tempLow && tempBodyHighCritic) {
     SMS("Температура тела критическая! !Перегрев");
-  digitalWrite(powerEPCoolPin,HIGH);
-  digitalWrite(powerEPHeatPin,LOW);
+    digitalWrite(powerEPCoolPin, HIGH);
+    delay (5000);
+    digitalWrite(powerEPHeatPin, LOW);
     //Отправка тревожного сигнала и включение Элементов-Пельтье на охлаждение
   }
 }
@@ -176,6 +173,38 @@ int TempOut() {
   int tempOut1 = round(float(sensorsTempOutPin.getTempCByIndex(0)));
   digitalWrite(powerTempOutPin, LOW);
   return tempOut1;
+}
+
+//Сохранение на SD-карту
+void FileSd() {
+  File logfile = SD.open("log.txt", FILE_WRITE);
+  if (logfile){
+    logfile.println(String() + "|" + String() + );
+    logfile.close();
+  }
+}
+
+void Temp() {
+  if (tempBody > tempOut) {
+    //Если температура тела больше температуры воздуха - устанавливаем tempLow в true
+    tempLow = true;
+  }
+  if (tempBody < tempOut) {
+    //Если температура тела больше температуры воздуха - устанавливаем tempHigh в true
+    tempHigh = true;
+  }
+  if (tempBody > TEMPBODYHIGHCRITIC) {
+    tempBodyHighCritic = true;                 // если температура тела больше чем критическая (высокая) температура тела, то tempBodyHighCritic в true
+  }
+  if (tempBody < TEMPBODYLOWCRITIC) {
+    tempBodyLowCritic = true;                 // если температура тела ниже чем критическая (низкая) температура тела, то tempBodyLowCritic в true
+  }
+  if (tempOut > TEMPOUTHIGHCRITIC) {
+    tempOutHighCritic = true;                 // если наружная температура больше чем критическая (высокая) температура наружности, то tempOutHighCritic в true
+  }
+  if (tempOut < TEMPOUTLOWCRITIC) {
+    tempOutLowCritic = true;                  // если наружная температура ниже чем критическая (низкая) температура наружности, то tempOutLowCritic в true
+  }
 }
 
 // Получение координат
