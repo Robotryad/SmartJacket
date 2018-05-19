@@ -168,6 +168,7 @@ int TempOut() {
   return tempOut1;
 }
 
+//Сохранение на SD-карту
 void FileSd() {
   File logfile = SD.open("log.txt", FILE_WRITE);
   if (logfile){
