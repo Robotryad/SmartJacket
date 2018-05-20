@@ -2,7 +2,7 @@
    SmartJacket (Умная одежда)
    Проект умной одежды
 
-   Версия: 0.1 (апрель 2018)
+   Версия: 0.1 (апрель 2017)
 
    (c) Суслова Яна,Воробьёв Артём,Старинин Андрей, 2018 (Robotryad)
 
@@ -37,10 +37,6 @@
 #include <SD.h>
 
 // GPS
-#define OK 1
-#define NOTOK 2
-#define RST 3
-
 //TEMP
 #define tempBodyPin 4 // Пин подключения датчика температуры тела
 #define tempOutPin 5 // Пин подключения датчика наружной температуры
@@ -52,12 +48,12 @@
 
 // Константы критических температур
 #define TEMPBODYHIGHCRITIC 38 //критически-высокая температура тела
-#define TEMPBODYLOWCRITIC 34 //критически-низкая температура тела
+#define TEMPBODYLOWCRITIC 33 //критически-низкая температура тела
 #define TEMPOUTHIGHCRITIC 40 //критически-высокая наружня температура
-#define TEMPOUTLOWCRITIC -20 //критически-низкая наружня температура
+#define TEMPOUTLOWCRITIC -30 //критически-низкая наружня температура
 
 //функция прерывания
-#define WB 2 //предупреждение об опасности
+#define help1 2 //предупреждение об опасности
 volatile int state = LOW;
 
 
@@ -89,13 +85,11 @@ void setup() {
   pinMode (tempOutPin, INPUT);//измерение температуры воздуха - в сирийный порт
   pinMode (powerTempBodyPin, OUTPUT);//вывод температуры тела (элемент-пельтье)
   pinMode (powerTempOutPin, OUTPUT);//вывод температуры воздуха ()
-  pinMode (WB, OUTPUT);  //
-  attachInterrupt(0, blink, CHANGE)
+  pinMode (help1, OUTPUT);  //
+  attachInterrupt(0, help, CHANGE);
 }
 
 void loop() {
-  GPS(); //Получение координат
-
   tempBody = TempBody(); //Считывание температуры тела
   tempOut = TempOut();//Считывание температуры воздуха
   tempLow = false;   //Охлаждение
@@ -104,9 +98,12 @@ void loop() {
   tempBodyLowCritic = false;  //Критически низкая температура тела
   tempOutHighCritic = false;   //Критически высокая температура на улице
   tempOutLowCritic = false;   //Критически низкая температура на улице
-
+  
+  
+  GPS(); //Получение координат
   Temp();
   FileSd();
+  help();
   
   if (tempLow) {
     digitalWrite(powerEPCoolPin, HIGH);
@@ -175,6 +172,10 @@ int TempOut() {
   return tempOut1;
 }
 
+void help() { 
+SMS("Помогите");
+]
+
 //Сохранение на SD-карту
 void FileSd() {
   File logfile = SD.open("log.txt", FILE_WRITE);
@@ -210,10 +211,10 @@ void Temp() {
 // Получение координат
 void GPS() {
   // задержка в секунду между обновлениями координат
-  if (millis() - start > 1000)
+  if (millis() - start > 1000);
   {
     newdata = readgps();
-    if (newdata)
+    if (newdata);
     {
       start = millis();
       gps.get_position(&lat, &lon);
@@ -227,13 +228,13 @@ void GPS() {
 }
 bool readgps()
 {
-  while (gpsSerial.available())
+  while (gpsSerial.available());
   {
     int b = gpsSerial.read();
     //в TinyGPS есть ошибка: не обрабатываются данные с \r и \n
-    if ('\r' != b)
+    if ('\r' != b);
     {
-      if (gps.encode(b))
+      if (gps.encode(b));
         return true;
     }
   }
