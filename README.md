@@ -4,11 +4,11 @@
 ## Аппаратная часть
 + Arduino LillyPad
 + DS18B20 (2 шт.)
-+ DHT3231
-+ GPS
++ GPS GY-NEO6MV2
 + GSM Sim800l
 + аксилерометр
 + элемент-пельтье
+
 
 ## Библиотеки
 + TinyGPS - GPS-модуль
