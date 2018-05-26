@@ -36,7 +36,6 @@
 #include <SoftwareSerial.h>
 #include <SD.h>
 
-// GPS
 //TEMP
 #define tempBodyPin 4 // Пин подключения датчика температуры тела
 #define tempOutPin 5 // Пин подключения датчика наружной температуры
@@ -44,7 +43,8 @@
 #define powerTempOutPin 7 // Пин управления питанием датчика наружной температуры
 #define powerEPHeatPin 12 // Пин подключения элемента-пельтье (для подогрева)
 #define powerEPCoolPin 13 // Пин подключения элемента-пельтье (для охлождения)
-
+#define tempOut1
+#define tempOut1
 
 // Константы критических температур
 #define TEMPBODYHIGHCRITIC 38 //критически-высокая температура тела
@@ -75,6 +75,7 @@ bool newdata = false;
 unsigned long start;
 long lat, lon;
 unsigned long time, date;
+bool readgps;
 
 void setup() {
   SD.begin(5);
@@ -86,10 +87,11 @@ void setup() {
   pinMode (powerTempBodyPin, OUTPUT);//вывод температуры тела (элемент-пельтье)
   pinMode (powerTempOutPin, OUTPUT);//вывод температуры воздуха ()
   pinMode (help1, OUTPUT);  //
-  attachInterrupt(0, help, CHANGE);
+  //attachInterrupt(0, help, CHANGE);
 }
 
 void loop() {
+
   tempBody = TempBody(); //Считывание температуры тела
   tempOut = TempOut();//Считывание температуры воздуха
   tempLow = false;   //Охлаждение
@@ -98,13 +100,7 @@ void loop() {
   tempBodyLowCritic = false;  //Критически низкая температура тела
   tempOutHighCritic = false;   //Критически высокая температура на улице
   tempOutLowCritic = false;   //Критически низкая температура на улице
-  
-  
-  GPS(); //Получение координат
-  Temp();
-  FileSd();
-  help();
-  
+ } 
   if (tempLow) {
     digitalWrite(powerEPCoolPin, HIGH);
     delay (5000);
@@ -174,7 +170,7 @@ int TempOut() {
 
 void help() { 
 SMS("Помогите");
-]
+}
 
 //Сохранение на SD-карту
 void FileSd() {
